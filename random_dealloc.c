@@ -3,6 +3,7 @@
 #include <stdlib.h> /* for calloc, free, rand, rand */
 #include <stdio.h> /* for printf */
 #include <string.h> /* for memset */
+#include <unistd.h> /* for sleep */
 
 /* Linked list header for array data packets. */
 typedef struct BUF_HEADER_
@@ -67,9 +68,13 @@ int main(int argc, char* argv[])
 
     while (1)
     {
+        sleep(1);
+        // "Randomly" decide whether to allocate 100 buffers or deallocate half
+        // of all buffers. Enforce a lower limit to prevent segfaults and keep
+        // the test interesting.
         action = 1 + rand() % 2;
 
-        if (buf_count < 2 || action == 1)
+        if (buf_count < 50 || action == 1)
         {
             // ADDITIONAL ALLOCATION
 
@@ -135,6 +140,7 @@ int main(int argc, char* argv[])
                 }
                 else
                 {
+                    // If we don't free, make sure to move the prev pointer.
                     ii_del = 1;
                     buf_prev = buf_prev->next_buf;
                 }

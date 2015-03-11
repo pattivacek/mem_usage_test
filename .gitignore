@@ -1,2 +1,4 @@
 a.out
 *.o
+block_test
+rand_test
