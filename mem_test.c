@@ -17,10 +17,11 @@ int main(int argc, char* argv[])
     BUF_HEADER* buf_list_start = NULL;
     BUF_HEADER* buf_hdr_cur = NULL;
     uint32_t i, buf_count;
-    const uint32_t init_buffer_count = 100;
+    const uint32_t init_buffer_count = 200;
     const uint32_t data_buf_size = 4 * 1024 * 1024;
     BUF_HEADER* buf_next;
     BUF_HEADER* buf_prev;
+    uint8_t ii_del = 1;
 
     // INITIALIZATION
 
@@ -63,66 +64,86 @@ int main(int argc, char* argv[])
 
     print_memory_usage("mem_test", 8);
 
-    // ADDITIONAL ALLOCATION
-
-    buf_hdr_cur = buf_hdr_cur->next_buf->next_buf->next_buf->next_buf->next_buf;
-
-    buf_next = buf_hdr_cur->next_buf;
-    buf_prev = buf_hdr_cur;
-
-    printf("Allocating additional buffers.\n");
-    fflush(stdout);
-
-    // Allocate a batch of new buffers and fit them into
-    // the existing linked list.
-    for (i = 0; i < init_buffer_count; i++)
+    while (1)
     {
-        buf_hdr_cur->next_buf = (BUF_HEADER*)calloc(1, data_buf_size);
-        if (buf_hdr_cur->next_buf == NULL)
+
+        // ADDITIONAL ALLOCATION
+
+        buf_hdr_cur = buf_hdr_cur->next_buf->next_buf->next_buf->next_buf->next_buf;
+
+        buf_next = buf_hdr_cur->next_buf;
+        buf_prev = buf_hdr_cur;
+
+        printf("Allocating additional buffers.\n");
+        fflush(stdout);
+
+        // Allocate a batch of new buffers and fit them into
+        // the existing linked list.
+        for (i = 0; i < init_buffer_count; i++)
         {
-            // If we run out of memory and can't
-            // allocate additional buffers, we are in
-            // trouble. We may drop data.
-            printf("ERROR: Failed to allocate memory for packet buffer. "
-                   "Attempting to continue anyway.\n");
-            fflush(stdout);
-            break;
+            buf_hdr_cur->next_buf = (BUF_HEADER*)calloc(1, data_buf_size);
+            if (buf_hdr_cur->next_buf == NULL)
+            {
+                // If we run out of memory and can't
+                // allocate additional buffers, we are in
+                // trouble. We may drop data.
+                printf("ERROR: Failed to allocate memory for packet buffer. "
+                       "Attempting to continue anyway.\n");
+                fflush(stdout);
+                break;
+            }
+            buf_count++;
+            buf_hdr_cur = buf_hdr_cur->next_buf;
+            memset(buf_hdr_cur, 0, data_buf_size);
         }
-        buf_count++;
-        buf_hdr_cur = buf_hdr_cur->next_buf;
-        memset(buf_hdr_cur, 0, data_buf_size);
+        buf_hdr_cur->next_buf = buf_next;
+        buf_hdr_cur = buf_prev;
+
+        printf("Total allocated buffers: %u\n", buf_count);
+        fflush(stdout);
+
+        print_memory_usage("mem_test", 8);
+
+        // DEALLOCATE ADDITIONAL BUFFERS
+
+        printf("Deallocating extra buffers.\n");
+        fflush(stdout);
+
+        buf_next = buf_hdr_cur->next_buf;
+        buf_prev = buf_hdr_cur;
+
+        // One by one, free the excess buffers.
+        while (buf_count > init_buffer_count)
+        {
+            buf_next = buf_next->next_buf;
+
+            // Only free every other buffer.
+            if (ii_del)
+            {
+                // FIXME: This is broken, because if buf_next moves without
+                // buf_prev moving we skip buffers and leak memory. Rethink how
+                // to mess around with memory.
+                free(buf_prev->next_buf);
+                buf_prev->next_buf = buf_next;
+                buf_count--;
+                ii_del = 0;
+            }
+            else
+            {
+                ii_del = 1;
+                buf_prev = buf_prev->next_buf;
+            }
+        }
+        buf_list_start = buf_hdr_cur = buf_prev;
+
+        printf("Total allocated buffers: %u\n", buf_count);
+        fflush(stdout);
+
+        print_memory_usage("mem_test", 8);
+
     }
-    buf_hdr_cur->next_buf = buf_next;
-    buf_hdr_cur = buf_prev;
 
-    printf("Total allocated buffers: %u\n", buf_count);
-    fflush(stdout);
-
-    print_memory_usage("mem_test", 8);
-
-    // DEALLOCATE ADDITIONAL BUFFERS
-
-    printf("Deallocating extra buffers.\n");
-    fflush(stdout);
-
-    buf_next = buf_hdr_cur->next_buf;
-
-    // One by one, free the excess buffers.
-    while (buf_count > init_buffer_count)
-    {
-        buf_next = buf_next->next_buf;
-
-        free(buf_prev->next_buf);
-        buf_prev->next_buf = buf_next;
-        buf_count--;
-    }
-
-    printf("Total allocated buffers: %u\n", buf_count);
-    fflush(stdout);
-
-    print_memory_usage("mem_test", 8);
-
-    // DEALLOCATE INITIAL BUFFERS
+    // DEALLOCATE REMAINING BUFFERS
 
     printf("Deallocating initial buffers.\n");
     fflush(stdout);
