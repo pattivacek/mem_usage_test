@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
     BUF_HEADER* buf_hdr_cur = NULL;
     uint32_t i, buf_count, prev_count;
     const uint32_t init_buffer_count = 100;
-    const uint32_t data_buf_size = 1 * 1024 * 1024;
+    const uint32_t data_buf_size = 1024 * 1024;
     BUF_HEADER* buf_next;
     BUF_HEADER* buf_prev;
     uint8_t ii_del = 1;
@@ -72,9 +72,9 @@ int main(int argc, char* argv[])
         // "Randomly" decide whether to allocate 100 buffers or deallocate half
         // of all buffers. Enforce a lower limit to prevent segfaults and keep
         // the test interesting.
-        action = 1 + rand() % 2;
+        action = 1 + rand() % 3;
 
-        if (buf_count < 50 || action == 1)
+        if (buf_count < 50 || action > 1)
         {
             // ADDITIONAL ALLOCATION
 

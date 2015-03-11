@@ -74,9 +74,9 @@ int main(int argc, char* argv[])
         // "Randomly" decide whether to allocate a block of 100 buffers or
         // deallocate half of all buffer blocks. Enforce a lower limit of one
         // full block to prevent segfaults and keep the test interesting.
-        action = 1 + rand() % 2;
+        action = 1 + rand() % 3;
 
-        if (num_blocks == 1 || action == 1)
+        if (num_blocks == 1 || action > 1)
         {
             // ADDITIONAL ALLOCATION
 
