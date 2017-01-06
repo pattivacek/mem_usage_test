@@ -1,4 +1,3 @@
-a.out
 *.o
-block_test
-rand_test
+free_every_other
+free_by_block
